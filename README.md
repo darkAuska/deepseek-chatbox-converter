@@ -6,7 +6,7 @@
 
 **[打开 DeepSeek 转 Chatbox 转换器](https://darkauska.github.io/deepseek-chatbox-converter/)**
 
-iPhone / iPad 请在 Safari 中打开链接。用原始 DeepSeek ZIP 转换后，在 Safari 的下载列表或「文件 → 下载」找到生成的 ZIP。如果页面有「分享 ZIP」，也可以点它后选「存储到文件」。在 Chatbox 导入时选择保存的 ZIP。
+iPhone / iPad 请在 Safari 中打开链接。用原始 DeepSeek ZIP 转换后，在 Safari 的下载列表或「文件 → 下载」找到生成的 ZIP。如果页面有「存储到文件」，点它后在 Safari 的系统分享菜单里选同名选项。在 Chatbox 导入时选择保存的 ZIP。
 
 ## 下载离线版
 
@@ -19,7 +19,7 @@ iPhone / iPad 请在 Safari 中打开链接。用原始 DeepSeek ZIP 转换后�
 1. 从 DeepSeek 导出聊天记录，保存原始 ZIP。新版导出直接选 ZIP。
 2. 在浏览器打开在线转换器。电脑也可以用 Chrome、Edge 或 Safari 打开下载的 **deepseek-chatbox-converter.html**。
 3. 点 **选择 DeepSeek 导出文件 → 开始转换**。分包大小可以先用默认的 **约 64 MB**。
-4. 点 **下载 ZIP** 或 **分享 ZIP**。若显示 **下载并继续**，按提示把各包分别保存。
+4. 点 **下载 ZIP**、**存储到文件** 或 **分享 ZIP**。若显示 **下载并继续**，按提示把各包分别保存。
 5. 打开 Chatbox，进入 **设置 → 数据与备份 → 导入备份**，逐个选择生成的 ZIP。生成的备份直接导入即可。
 
 ## 转换范围
