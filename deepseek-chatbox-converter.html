@@ -1,0 +1,1495 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; worker-src blob:; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#f3f6fc">
+<title>DeepSeek 转 Chatbox</title>
+<style>
+:root{color-scheme:light;font:16px/1.6 Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#172846;background:#f2f5fc;--ink:#172846;--dim:#4c607e;--blue:#244abf;--line:#d5dff2;--pale:#eef3ff}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:radial-gradient(ellipse at 15% 0,#e2eaff,transparent 50%);min-height:100vh}main{width:min(100% - 36px,780px);margin:auto;padding:58px 0 38px}header{margin-bottom:26px}.brand{display:flex;align-items:center;gap:10px;color:#284ca0;font-size:.9rem;font-weight:750}.symbol{display:grid;place-items:center;background:#264bc3;color:white;width:34px;height:34px;border-radius:10px;font-size:21px}h1{font-size:clamp(30px,6.5vw,50px);letter-spacing:-.045em;line-height:1.13;margin:17px 0 11px}p{margin:0;color:var(--dim)}.panel,.guide{background:#fff;border:1px solid #dce4f4;border-radius:22px;padding:26px;margin:15px 0}.panel{box-shadow:0 15px 40px #283d7510}.privacy{font-size:.88rem;margin-top:13px;color:#31525e}.privacy::before{content:"";display:inline-block;margin-right:7px;width:8px;height:8px;border-radius:50%;background:#15765f;vertical-align:2px}h2{font-size:1.08rem;margin:0 0 9px}.picker{position:relative;display:flex;align-items:center;gap:14px;min-height:98px;padding:15px 18px;margin:12px 0 15px;border:1px dashed #8fa8e2;border-radius:15px;background:var(--pale);cursor:pointer}.picker:hover,.picker:focus-within{border-color:var(--blue);outline:2px solid #3768cc50}.picker input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}.picker input:disabled{cursor:default}.file-icon{display:grid;place-items:center;border-radius:12px;min-width:42px;height:42px;background:#dbe6ff;color:#234bb7;font-size:21px}.picker strong,.picker small{display:block;overflow-wrap:anywhere}.picker small,small{color:var(--dim);font-size:.85rem}.row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px}.size-field{display:flex;align-items:center;gap:9px;font-size:.9rem;color:var(--dim)}button,select,.action{font:inherit;min-height:46px}.action,button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;border-radius:11px;padding:9px 17px;background:var(--blue);color:#fff;text-decoration:none;font-weight:700;cursor:pointer}button:disabled{color:#506184;background:#e6ebf6;cursor:default}.secondary{background:#fff;border-color:var(--line);color:var(--blue)}select{background:#fff;border:1px solid var(--line);border-radius:9px;padding:4px 9px;color:var(--ink)}:focus-visible{outline:3px solid #4290e5;outline-offset:3px}.readout{margin:16px 0 0}.readout p{font-size:.92rem;overflow-wrap:anywhere}.readout progress{display:block;width:100%;height:9px;background:#eef1f8;accent-color:var(--blue);margin:10px 0}.readout .error{color:#a12537}.results{display:grid;gap:8px;margin-top:13px}.result{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f3f7ff;padding:9px 10px 9px 14px;border-radius:12px}.result strong,.result small{display:block}.result a{white-space:nowrap}.guide h2{margin-bottom:8px}.guide p,.guide ol,.guide details{font-size:.93rem}.guide ol{margin:0 0 12px;padding-left:22px}.guide li+li{margin-top:5px}.guide details{border-top:1px solid #e0e7f4;padding-top:10px}.guide details p{margin-top:7px}summary{cursor:pointer;color:#2e4e87;font-weight:700}
+@media(max-width:520px){main{padding:28px 0 16px;width:calc(100% - 28px)}.panel,.guide{padding:17px;border-radius:17px}.row{align-items:stretch;gap:10px}.size-field{flex:1;justify-content:space-between;min-width:100%}.row button{flex:1}.picker{min-height:84px}.result a{padding-inline:12px}}
+</style>
+</head>
+<body><main>
+<header>
+  <div class="brand"><span class="symbol" aria-hidden="true">⇄</span> 聊天记录迁移</div>
+  <h1>DeepSeek 转 Chatbox</h1>
+  <p>选择 DeepSeek 导出的 ZIP，生成可导入 Chatbox 的备份。</p>
+  <p class="privacy">文件只在当前设备处理，无需登录。</p>
+</header>
+<section class="panel" aria-labelledby="convert-heading">
+  <h2 id="convert-heading">转换备份</h2>
+  <label class="picker">
+    <span class="file-icon" aria-hidden="true">↓</span>
+    <span><strong id="file-title">选择 DeepSeek 导出文件</strong><small id="file-note">支持官方 ZIP，也可选旧版 conversations.json</small></span>
+    <input id="source" type="file" accept=".zip,.json,application/zip,application/json,application/octet-stream" aria-label="选择 DeepSeek 导出文件" aria-describedby="file-note">
+  </label>
+  <div class="row">
+    <label class="size-field" for="part-size">单包目标大小
+      <select id="part-size">
+        <option value="32">约 32 MB</option><option value="64" selected>约 64 MB</option><option value="128">约 128 MB</option><option value="256">约 256 MB</option>
+      </select>
+    </label>
+    <button id="convert" type="button" disabled>开始转换</button>
+    <button id="cancel" class="secondary" type="button" hidden>停止</button>
+  </div>
+  <div class="readout">
+    <p id="status" role="status" aria-live="polite"></p>
+    <progress id="progress" aria-label="转换进度" hidden></progress>
+    <div class="results" id="results" aria-label="生成的备份"></div>
+  </div>
+</section>
+<section class="guide" aria-labelledby="guide-heading">
+  <h2 id="guide-heading">在 Chatbox 里导入</h2>
+  <ol>
+    <li>下载生成的备份，保留 ZIP 文件。</li>
+    <li>打开 Chatbox，进入 <strong>设置 → 数据与备份 → 导入备份</strong>。</li>
+    <li>有多个分包时，逐个导入。每个对话完整地放在同一个包里。</li>
+  </ol>
+  <details><summary>支持哪些内容？</summary>
+  <p>新版 DeepSeek ZIP 保留标题、问答、思考过程、图片、可读取的附件和回复分支。旧版 conversations.json 转换当前分支的文字和思考过程。DeepSeek 账号信息、搜索工具记录和站内提示不随备份迁移。</p>
+  <p>大文件会使用浏览器的本地临时空间。若浏览器限制本地空间，工具会改为逐包下载。单个对话超过目标大小时会单独生成一包。</p></details>
+</section>
+</main>
+<script id="worker-code" type="text/plain">
+
+/* hash.js 1.1.7, inherits and minimalistic-assert licenses
+
+
+Copyright Fedor Indutny, 2014.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to permit
+persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The ISC License
+
+Copyright (c) Isaac Z. Schlueter
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+
+Copyright 2015 Calvin Metcalf
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted, provided that the above copyright notice
+and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+*/
+(function () {
+  const modules = {"hash.js/lib/hash/sha/256.js":[function(module,exports,require){
+'use strict';
+
+var utils = require('../utils');
+var common = require('../common');
+var shaCommon = require('./common');
+var assert = require('minimalistic-assert');
+
+var sum32 = utils.sum32;
+var sum32_4 = utils.sum32_4;
+var sum32_5 = utils.sum32_5;
+var ch32 = shaCommon.ch32;
+var maj32 = shaCommon.maj32;
+var s0_256 = shaCommon.s0_256;
+var s1_256 = shaCommon.s1_256;
+var g0_256 = shaCommon.g0_256;
+var g1_256 = shaCommon.g1_256;
+
+var BlockHash = common.BlockHash;
+
+var sha256_K = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+  0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+  0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+  0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+  0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+  0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+];
+
+function SHA256() {
+  if (!(this instanceof SHA256))
+    return new SHA256();
+
+  BlockHash.call(this);
+  this.h = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ];
+  this.k = sha256_K;
+  this.W = new Array(64);
+}
+utils.inherits(SHA256, BlockHash);
+module.exports = SHA256;
+
+SHA256.blockSize = 512;
+SHA256.outSize = 256;
+SHA256.hmacStrength = 192;
+SHA256.padLength = 64;
+
+SHA256.prototype._update = function _update(msg, start) {
+  var W = this.W;
+
+  for (var i = 0; i < 16; i++)
+    W[i] = msg[start + i];
+  for (; i < W.length; i++)
+    W[i] = sum32_4(g1_256(W[i - 2]), W[i - 7], g0_256(W[i - 15]), W[i - 16]);
+
+  var a = this.h[0];
+  var b = this.h[1];
+  var c = this.h[2];
+  var d = this.h[3];
+  var e = this.h[4];
+  var f = this.h[5];
+  var g = this.h[6];
+  var h = this.h[7];
+
+  assert(this.k.length === W.length);
+  for (i = 0; i < W.length; i++) {
+    var T1 = sum32_5(h, s1_256(e), ch32(e, f, g), this.k[i], W[i]);
+    var T2 = sum32(s0_256(a), maj32(a, b, c));
+    h = g;
+    g = f;
+    f = e;
+    e = sum32(d, T1);
+    d = c;
+    c = b;
+    b = a;
+    a = sum32(T1, T2);
+  }
+
+  this.h[0] = sum32(this.h[0], a);
+  this.h[1] = sum32(this.h[1], b);
+  this.h[2] = sum32(this.h[2], c);
+  this.h[3] = sum32(this.h[3], d);
+  this.h[4] = sum32(this.h[4], e);
+  this.h[5] = sum32(this.h[5], f);
+  this.h[6] = sum32(this.h[6], g);
+  this.h[7] = sum32(this.h[7], h);
+};
+
+SHA256.prototype._digest = function digest(enc) {
+  if (enc === 'hex')
+    return utils.toHex32(this.h, 'big');
+  else
+    return utils.split32(this.h, 'big');
+};
+
+},{"../utils":"hash.js/lib/hash/utils.js","../common":"hash.js/lib/hash/common.js","./common":"hash.js/lib/hash/sha/common.js","minimalistic-assert":"minimalistic-assert/index.js"}],
+"hash.js/lib/hash/utils.js":[function(module,exports,require){
+'use strict';
+
+var assert = require('minimalistic-assert');
+var inherits = require('inherits');
+
+exports.inherits = inherits;
+
+function isSurrogatePair(msg, i) {
+  if ((msg.charCodeAt(i) & 0xFC00) !== 0xD800) {
+    return false;
+  }
+  if (i < 0 || i + 1 >= msg.length) {
+    return false;
+  }
+  return (msg.charCodeAt(i + 1) & 0xFC00) === 0xDC00;
+}
+
+function toArray(msg, enc) {
+  if (Array.isArray(msg))
+    return msg.slice();
+  if (!msg)
+    return [];
+  var res = [];
+  if (typeof msg === 'string') {
+    if (!enc) {
+      // Inspired by stringToUtf8ByteArray() in closure-library by Google
+      // https://github.com/google/closure-library/blob/8598d87242af59aac233270742c8984e2b2bdbe0/closure/goog/crypt/crypt.js#L117-L143
+      // Apache License 2.0
+      // https://github.com/google/closure-library/blob/master/LICENSE
+      var p = 0;
+      for (var i = 0; i < msg.length; i++) {
+        var c = msg.charCodeAt(i);
+        if (c < 128) {
+          res[p++] = c;
+        } else if (c < 2048) {
+          res[p++] = (c >> 6) | 192;
+          res[p++] = (c & 63) | 128;
+        } else if (isSurrogatePair(msg, i)) {
+          c = 0x10000 + ((c & 0x03FF) << 10) + (msg.charCodeAt(++i) & 0x03FF);
+          res[p++] = (c >> 18) | 240;
+          res[p++] = ((c >> 12) & 63) | 128;
+          res[p++] = ((c >> 6) & 63) | 128;
+          res[p++] = (c & 63) | 128;
+        } else {
+          res[p++] = (c >> 12) | 224;
+          res[p++] = ((c >> 6) & 63) | 128;
+          res[p++] = (c & 63) | 128;
+        }
+      }
+    } else if (enc === 'hex') {
+      msg = msg.replace(/[^a-z0-9]+/ig, '');
+      if (msg.length % 2 !== 0)
+        msg = '0' + msg;
+      for (i = 0; i < msg.length; i += 2)
+        res.push(parseInt(msg[i] + msg[i + 1], 16));
+    }
+  } else {
+    for (i = 0; i < msg.length; i++)
+      res[i] = msg[i] | 0;
+  }
+  return res;
+}
+exports.toArray = toArray;
+
+function toHex(msg) {
+  var res = '';
+  for (var i = 0; i < msg.length; i++)
+    res += zero2(msg[i].toString(16));
+  return res;
+}
+exports.toHex = toHex;
+
+function htonl(w) {
+  var res = (w >>> 24) |
+            ((w >>> 8) & 0xff00) |
+            ((w << 8) & 0xff0000) |
+            ((w & 0xff) << 24);
+  return res >>> 0;
+}
+exports.htonl = htonl;
+
+function toHex32(msg, endian) {
+  var res = '';
+  for (var i = 0; i < msg.length; i++) {
+    var w = msg[i];
+    if (endian === 'little')
+      w = htonl(w);
+    res += zero8(w.toString(16));
+  }
+  return res;
+}
+exports.toHex32 = toHex32;
+
+function zero2(word) {
+  if (word.length === 1)
+    return '0' + word;
+  else
+    return word;
+}
+exports.zero2 = zero2;
+
+function zero8(word) {
+  if (word.length === 7)
+    return '0' + word;
+  else if (word.length === 6)
+    return '00' + word;
+  else if (word.length === 5)
+    return '000' + word;
+  else if (word.length === 4)
+    return '0000' + word;
+  else if (word.length === 3)
+    return '00000' + word;
+  else if (word.length === 2)
+    return '000000' + word;
+  else if (word.length === 1)
+    return '0000000' + word;
+  else
+    return word;
+}
+exports.zero8 = zero8;
+
+function join32(msg, start, end, endian) {
+  var len = end - start;
+  assert(len % 4 === 0);
+  var res = new Array(len / 4);
+  for (var i = 0, k = start; i < res.length; i++, k += 4) {
+    var w;
+    if (endian === 'big')
+      w = (msg[k] << 24) | (msg[k + 1] << 16) | (msg[k + 2] << 8) | msg[k + 3];
+    else
+      w = (msg[k + 3] << 24) | (msg[k + 2] << 16) | (msg[k + 1] << 8) | msg[k];
+    res[i] = w >>> 0;
+  }
+  return res;
+}
+exports.join32 = join32;
+
+function split32(msg, endian) {
+  var res = new Array(msg.length * 4);
+  for (var i = 0, k = 0; i < msg.length; i++, k += 4) {
+    var m = msg[i];
+    if (endian === 'big') {
+      res[k] = m >>> 24;
+      res[k + 1] = (m >>> 16) & 0xff;
+      res[k + 2] = (m >>> 8) & 0xff;
+      res[k + 3] = m & 0xff;
+    } else {
+      res[k + 3] = m >>> 24;
+      res[k + 2] = (m >>> 16) & 0xff;
+      res[k + 1] = (m >>> 8) & 0xff;
+      res[k] = m & 0xff;
+    }
+  }
+  return res;
+}
+exports.split32 = split32;
+
+function rotr32(w, b) {
+  return (w >>> b) | (w << (32 - b));
+}
+exports.rotr32 = rotr32;
+
+function rotl32(w, b) {
+  return (w << b) | (w >>> (32 - b));
+}
+exports.rotl32 = rotl32;
+
+function sum32(a, b) {
+  return (a + b) >>> 0;
+}
+exports.sum32 = sum32;
+
+function sum32_3(a, b, c) {
+  return (a + b + c) >>> 0;
+}
+exports.sum32_3 = sum32_3;
+
+function sum32_4(a, b, c, d) {
+  return (a + b + c + d) >>> 0;
+}
+exports.sum32_4 = sum32_4;
+
+function sum32_5(a, b, c, d, e) {
+  return (a + b + c + d + e) >>> 0;
+}
+exports.sum32_5 = sum32_5;
+
+function sum64(buf, pos, ah, al) {
+  var bh = buf[pos];
+  var bl = buf[pos + 1];
+
+  var lo = (al + bl) >>> 0;
+  var hi = (lo < al ? 1 : 0) + ah + bh;
+  buf[pos] = hi >>> 0;
+  buf[pos + 1] = lo;
+}
+exports.sum64 = sum64;
+
+function sum64_hi(ah, al, bh, bl) {
+  var lo = (al + bl) >>> 0;
+  var hi = (lo < al ? 1 : 0) + ah + bh;
+  return hi >>> 0;
+}
+exports.sum64_hi = sum64_hi;
+
+function sum64_lo(ah, al, bh, bl) {
+  var lo = al + bl;
+  return lo >>> 0;
+}
+exports.sum64_lo = sum64_lo;
+
+function sum64_4_hi(ah, al, bh, bl, ch, cl, dh, dl) {
+  var carry = 0;
+  var lo = al;
+  lo = (lo + bl) >>> 0;
+  carry += lo < al ? 1 : 0;
+  lo = (lo + cl) >>> 0;
+  carry += lo < cl ? 1 : 0;
+  lo = (lo + dl) >>> 0;
+  carry += lo < dl ? 1 : 0;
+
+  var hi = ah + bh + ch + dh + carry;
+  return hi >>> 0;
+}
+exports.sum64_4_hi = sum64_4_hi;
+
+function sum64_4_lo(ah, al, bh, bl, ch, cl, dh, dl) {
+  var lo = al + bl + cl + dl;
+  return lo >>> 0;
+}
+exports.sum64_4_lo = sum64_4_lo;
+
+function sum64_5_hi(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+  var carry = 0;
+  var lo = al;
+  lo = (lo + bl) >>> 0;
+  carry += lo < al ? 1 : 0;
+  lo = (lo + cl) >>> 0;
+  carry += lo < cl ? 1 : 0;
+  lo = (lo + dl) >>> 0;
+  carry += lo < dl ? 1 : 0;
+  lo = (lo + el) >>> 0;
+  carry += lo < el ? 1 : 0;
+
+  var hi = ah + bh + ch + dh + eh + carry;
+  return hi >>> 0;
+}
+exports.sum64_5_hi = sum64_5_hi;
+
+function sum64_5_lo(ah, al, bh, bl, ch, cl, dh, dl, eh, el) {
+  var lo = al + bl + cl + dl + el;
+
+  return lo >>> 0;
+}
+exports.sum64_5_lo = sum64_5_lo;
+
+function rotr64_hi(ah, al, num) {
+  var r = (al << (32 - num)) | (ah >>> num);
+  return r >>> 0;
+}
+exports.rotr64_hi = rotr64_hi;
+
+function rotr64_lo(ah, al, num) {
+  var r = (ah << (32 - num)) | (al >>> num);
+  return r >>> 0;
+}
+exports.rotr64_lo = rotr64_lo;
+
+function shr64_hi(ah, al, num) {
+  return ah >>> num;
+}
+exports.shr64_hi = shr64_hi;
+
+function shr64_lo(ah, al, num) {
+  var r = (ah << (32 - num)) | (al >>> num);
+  return r >>> 0;
+}
+exports.shr64_lo = shr64_lo;
+
+},{"minimalistic-assert":"minimalistic-assert/index.js","inherits":"inherits"}],
+"minimalistic-assert/index.js":[function(module,exports,require){
+module.exports = assert;
+
+function assert(val, msg) {
+  if (!val)
+    throw new Error(msg || 'Assertion failed');
+}
+
+assert.equal = function assertEqual(l, r, msg) {
+  if (l != r)
+    throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
+};
+
+},{}],
+"hash.js/lib/hash/common.js":[function(module,exports,require){
+'use strict';
+
+var utils = require('./utils');
+var assert = require('minimalistic-assert');
+
+function BlockHash() {
+  this.pending = null;
+  this.pendingTotal = 0;
+  this.blockSize = this.constructor.blockSize;
+  this.outSize = this.constructor.outSize;
+  this.hmacStrength = this.constructor.hmacStrength;
+  this.padLength = this.constructor.padLength / 8;
+  this.endian = 'big';
+
+  this._delta8 = this.blockSize / 8;
+  this._delta32 = this.blockSize / 32;
+}
+exports.BlockHash = BlockHash;
+
+BlockHash.prototype.update = function update(msg, enc) {
+  // Convert message to array, pad it, and join into 32bit blocks
+  msg = utils.toArray(msg, enc);
+  if (!this.pending)
+    this.pending = msg;
+  else
+    this.pending = this.pending.concat(msg);
+  this.pendingTotal += msg.length;
+
+  // Enough data, try updating
+  if (this.pending.length >= this._delta8) {
+    msg = this.pending;
+
+    // Process pending data in blocks
+    var r = msg.length % this._delta8;
+    this.pending = msg.slice(msg.length - r, msg.length);
+    if (this.pending.length === 0)
+      this.pending = null;
+
+    msg = utils.join32(msg, 0, msg.length - r, this.endian);
+    for (var i = 0; i < msg.length; i += this._delta32)
+      this._update(msg, i, i + this._delta32);
+  }
+
+  return this;
+};
+
+BlockHash.prototype.digest = function digest(enc) {
+  this.update(this._pad());
+  assert(this.pending === null);
+
+  return this._digest(enc);
+};
+
+BlockHash.prototype._pad = function pad() {
+  var len = this.pendingTotal;
+  var bytes = this._delta8;
+  var k = bytes - ((len + this.padLength) % bytes);
+  var res = new Array(k + this.padLength);
+  res[0] = 0x80;
+  for (var i = 1; i < k; i++)
+    res[i] = 0;
+
+  // Append length
+  len <<= 3;
+  if (this.endian === 'big') {
+    for (var t = 8; t < this.padLength; t++)
+      res[i++] = 0;
+
+    res[i++] = 0;
+    res[i++] = 0;
+    res[i++] = 0;
+    res[i++] = 0;
+    res[i++] = (len >>> 24) & 0xff;
+    res[i++] = (len >>> 16) & 0xff;
+    res[i++] = (len >>> 8) & 0xff;
+    res[i++] = len & 0xff;
+  } else {
+    res[i++] = len & 0xff;
+    res[i++] = (len >>> 8) & 0xff;
+    res[i++] = (len >>> 16) & 0xff;
+    res[i++] = (len >>> 24) & 0xff;
+    res[i++] = 0;
+    res[i++] = 0;
+    res[i++] = 0;
+    res[i++] = 0;
+
+    for (t = 8; t < this.padLength; t++)
+      res[i++] = 0;
+  }
+
+  return res;
+};
+
+},{"./utils":"hash.js/lib/hash/utils.js","minimalistic-assert":"minimalistic-assert/index.js"}],
+"hash.js/lib/hash/sha/common.js":[function(module,exports,require){
+'use strict';
+
+var utils = require('../utils');
+var rotr32 = utils.rotr32;
+
+function ft_1(s, x, y, z) {
+  if (s === 0)
+    return ch32(x, y, z);
+  if (s === 1 || s === 3)
+    return p32(x, y, z);
+  if (s === 2)
+    return maj32(x, y, z);
+}
+exports.ft_1 = ft_1;
+
+function ch32(x, y, z) {
+  return (x & y) ^ ((~x) & z);
+}
+exports.ch32 = ch32;
+
+function maj32(x, y, z) {
+  return (x & y) ^ (x & z) ^ (y & z);
+}
+exports.maj32 = maj32;
+
+function p32(x, y, z) {
+  return x ^ y ^ z;
+}
+exports.p32 = p32;
+
+function s0_256(x) {
+  return rotr32(x, 2) ^ rotr32(x, 13) ^ rotr32(x, 22);
+}
+exports.s0_256 = s0_256;
+
+function s1_256(x) {
+  return rotr32(x, 6) ^ rotr32(x, 11) ^ rotr32(x, 25);
+}
+exports.s1_256 = s1_256;
+
+function g0_256(x) {
+  return rotr32(x, 7) ^ rotr32(x, 18) ^ (x >>> 3);
+}
+exports.g0_256 = g0_256;
+
+function g1_256(x) {
+  return rotr32(x, 17) ^ rotr32(x, 19) ^ (x >>> 10);
+}
+exports.g1_256 = g1_256;
+
+},{"../utils":"hash.js/lib/hash/utils.js"}],
+"inherits":[function(module,exports,require){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor
+      ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+          value: ctor,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        }
+      })
+    }
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    if (superCtor) {
+      ctor.super_ = superCtor
+      var TempCtor = function () {}
+      TempCtor.prototype = superCtor.prototype
+      ctor.prototype = new TempCtor()
+      ctor.prototype.constructor = ctor
+    }
+  }
+}
+
+},{}]};
+  const cache = {};
+  function load(id) {
+    if (cache[id]) return cache[id].exports;
+    const [run, deps] = modules[id];
+    const module = cache[id] = { exports: {} };
+    run(module, module.exports, (name) => load(deps[name]));
+    return module.exports;
+  }
+  self.newSha256 = load("hash.js/lib/hash/sha/256.js");
+})();
+'use strict';
+
+const MiB = 1024 * 1024;
+const ZIP_LIMIT = 0xffffffff;
+const MEMORY_LIMIT = 96 * MiB;
+const MAX_SESSION = 32 * MiB;
+const MAX_DIRECTORY = 48 * MiB;
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder('utf-8', { fatal: true });
+const crcTable = Uint32Array.from({ length: 256 }, (_, value) => {
+  for (let bit = 0; bit < 8; bit++) {
+    value = (value & 1) ? (value >>> 1) ^ 0xedb88320 : value >>> 1;
+  }
+  return value;
+});
+const crcUpdate = (state, bytes) => {
+  for (const byte of bytes) state = (state >>> 8) ^ crcTable[(state ^ byte) & 0xff];
+  return state;
+};
+const checksum = (bytes) => (crcUpdate(0xffffffff, bytes) ^ 0xffffffff) >>> 0;
+const bytesOf = (value) => textEncoder.encode(JSON.stringify(value));
+const read = async (file, start, count) => new Uint8Array(await file.slice(start, start + count).arrayBuffer());
+const viewOf = (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+const countLabel = (count) => count.toLocaleString('zh-CN');
+const status = (message, current, total) => postMessage({ type: 'progress', message, current, total });
+
+async function openZip(file) {
+  const tail = await read(file, Math.max(0, file.size - 65557), Math.min(file.size, 65557));
+  const view = viewOf(tail);
+  let end = tail.length - 22;
+  while (end >= 0 && (view.getUint32(end, true) !== 0x06054b50 ||
+    end + 22 + view.getUint16(end + 20, true) !== tail.length)) end--;
+  if (end < 0) throw new Error('ZIP 无法读取。请重新从 DeepSeek 下载原始导出文件。');
+  const size = view.getUint32(end + 12, true);
+  const offset = view.getUint32(end + 16, true);
+  const entries = view.getUint16(end + 10, true);
+  if (view.getUint16(end + 4, true) || view.getUint16(end + 6, true) ||
+      entries === 0xffff || size === ZIP_LIMIT || offset === ZIP_LIMIT) {
+    throw new Error('这个 ZIP 使用 ZIP64 或跨卷格式。当前支持普通 ZIP。');
+  }
+  if (size > MAX_DIRECTORY || offset + size > file.size - tail.length + end) {
+    throw new Error('ZIP 文件目录损坏或过大。');
+  }
+  const directory = await read(file, offset, size);
+  const index = new Map();
+  const central = viewOf(directory);
+  let position = 0;
+  for (let entry = 0; entry < entries; entry++) {
+    if (position + 46 > size || central.getUint32(position, true) !== 0x02014b50) {
+      throw new Error('ZIP 文件目录损坏。');
+    }
+    const flags = central.getUint16(position + 8, true);
+    const method = central.getUint16(position + 10, true);
+    const crc = central.getUint32(position + 16, true);
+    const packed = central.getUint32(position + 20, true);
+    const length = central.getUint32(position + 24, true);
+    const nameLength = central.getUint16(position + 28, true);
+    const extraLength = central.getUint16(position + 30, true);
+    const commentLength = central.getUint16(position + 32, true);
+    const start = central.getUint32(position + 42, true);
+    const nameEnd = position + 46 + nameLength;
+    position = nameEnd + extraLength + commentLength;
+    if (!nameLength || position > size || start + 30 > offset) {
+      throw new Error('ZIP 文件目录损坏。');
+    }
+    const name = textDecoder.decode(directory.subarray(nameEnd - nameLength, nameEnd));
+    if (name.endsWith('/')) continue;
+    if (index.has(name)) throw new Error('ZIP 里包含重名文件。');
+    index.set(name, { name, flags, method, crc, packed, length, start });
+  }
+  async function stream(entry) {
+    if (entry.flags & 1) throw new Error('不支持带密码的 ZIP。');
+    if (entry.length === ZIP_LIMIT || entry.packed === ZIP_LIMIT) throw new Error('这个文件使用 ZIP64。');
+    const local = viewOf(await read(file, entry.start, 30));
+    if (local.getUint32(0, true) !== 0x04034b50 || local.getUint16(8, true) !== entry.method) {
+      throw new Error('ZIP 里的文件记录损坏。');
+    }
+    const start = entry.start + 30 + local.getUint16(26, true) + local.getUint16(28, true);
+    if (start + entry.packed > offset) throw new Error('ZIP 里的文件不完整。');
+    const raw = file.slice(start, start + entry.packed).stream();
+    if (entry.method === 0) return raw;
+    if (entry.method === 8) {
+      try { return raw.pipeThrough(new DecompressionStream('deflate-raw')); }
+      catch { throw new Error('当前浏览器缺少 ZIP 解压功能。请用最新版 Chrome、Edge 或 Safari。'); }
+    }
+    throw new Error('ZIP 使用了当前工具不支持的压缩方式。');
+  }
+  async function transfer(entry, consume) {
+    const reader = (await stream(entry)).getReader();
+    let length = 0;
+    let state = 0xffffffff;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        length += value.length;
+        if (length > entry.length) throw new Error('ZIP 里的文件大小不一致。');
+        state = crcUpdate(state, value);
+        await consume(value);
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      if (error?.name === 'NotReadableError') {
+        throw new Error('读取 ZIP 中的文件中断。请先把原始 ZIP 保存到本机，再重新选择。');
+      }
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
+    if (length !== entry.length || ((state ^ 0xffffffff) >>> 0) !== entry.crc) {
+      throw new Error('ZIP 完整性校验失败。请重新下载原文件。');
+    }
+  }
+  async function json(entry, limit = MAX_SESSION) {
+    if (entry.length > limit) throw new Error('单个会话或 JSON 文件超过 32 MB，无法在此版本中读取。');
+    const bytes = new Uint8Array(entry.length);
+    let at = 0;
+    await transfer(entry, (chunk) => { bytes.set(chunk, at); at += chunk.length; });
+    return JSON.parse(textDecoder.decode(bytes).replace(/^\uFEFF/, ''));
+  }
+  return { index, transfer, json };
+}
+
+const zipName = (number) => 'deepseek-chatbox-' + String(number).padStart(2, '0') + '.zip';
+const randomTime = () => new Date().toISOString();
+function header(length, signature) {
+  const bytes = new Uint8Array(length);
+  const view = viewOf(bytes);
+  view.setUint32(0, signature, true);
+  return { bytes, view };
+}
+
+async function openSink(handle) {
+  if (typeof handle.createSyncAccessHandle === 'function') {
+    const access = await handle.createSyncAccessHandle();
+    let offset = 0;
+    let closed = false;
+    function close() {
+      if (closed) return;
+      closed = true;
+      access.close();
+    }
+    return {
+      write(bytes) {
+        if (access.write(bytes, { at: offset }) !== bytes.length) {
+          throw new DOMException('Incomplete temporary file write', 'QuotaExceededError');
+        }
+        offset += bytes.length;
+      },
+      close, abort: close,
+    };
+  }
+  return handle.createWritable();
+}
+
+async function getStorage(job) {
+  let root;
+  try {
+    root = await navigator.storage.getDirectory();
+    for await (const [name] of root.entries()) {
+      const match = /^ds-chatbox-(\d+)-[a-z0-9]+$/.exec(name);
+      if (match && Date.now() - Number(match[1]) > 24 * 3600 * 1000) {
+        await root.removeEntry(name, { recursive: true }).catch(() => {});
+      }
+    }
+    const directory = await root.getDirectoryHandle(job, { create: true });
+    const test = await directory.getFileHandle('.probe', { create: true });
+    const writer = await openSink(test);
+    await writer.close();
+    await directory.removeEntry('.probe');
+    return { directory, root };
+  } catch {
+    if (root) await root.removeEntry(job, { recursive: true }).catch(() => {});
+    return null;
+  }
+}
+
+async function makeWriter(storage, number) {
+  const name = zipName(number);
+  const handle = storage ? await storage.directory.getFileHandle(name, { create: true }) : null;
+  const sink = handle ? await openSink(handle) : null;
+  const chunks = [];
+  const entries = [];
+  let bytesWritten = 0;
+  async function write(bytes) {
+    if (bytesWritten + bytes.length >= ZIP_LIMIT) {
+      throw new Error('单个备份超过普通 ZIP 的 4 GB 上限。');
+    }
+    if (sink) await sink.write(bytes);
+    else {
+      if (bytesWritten + bytes.length > MEMORY_LIMIT) {
+        throw new Error('单个备份超过此浏览器的内存处理上限（96 MB）。请选较小的分包大小，或用允许本地临时存储的电脑浏览器。');
+      }
+      chunks.push(bytes);
+    }
+    bytesWritten += bytes.length;
+  }
+
+  async function entry(path, length, crc, send) {
+    const fileName = textEncoder.encode(path);
+    const offset = bytesWritten;
+    const local = header(30, 0x04034b50);
+    local.view.setUint16(4, 20, true);
+    local.view.setUint16(6, 0x800, true);
+    local.view.setUint16(12, 0x21, true);
+    local.view.setUint32(14, crc, true);
+    local.view.setUint32(18, length, true);
+    local.view.setUint32(22, length, true);
+    local.view.setUint16(26, fileName.length, true);
+    await write(local.bytes);
+    await write(fileName);
+    const start = bytesWritten;
+    await send(write);
+    if (bytesWritten - start !== length) throw new Error('写入备份时长度校验失败。');
+    entries.push({ fileName, length, crc, offset });
+  }
+
+  async function addBytes(path, data) {
+    await entry(path, data.length, checksum(data), (writeChunk) => writeChunk(data));
+    const value = await sha256Bytes(data);
+    return { path, size: data.length, checksum: { algorithm: 'sha256', value } };
+  }
+
+  async function addFile(path, source, transfer) {
+    const hash = self.newSha256();
+    await entry(path, source.length, source.crc, (writeChunk) => transfer(source, async (chunk) => {
+      hash.update(chunk);
+      await writeChunk(chunk);
+    }));
+    return { path, size: source.length, checksum: { algorithm: 'sha256', value: hash.digest('hex') } };
+  }
+
+  async function close() {
+    const offset = bytesWritten;
+    if (entries.length >= 65535) throw new Error('单个备份的文件数量超过 ZIP 上限。');
+    for (const record of entries) {
+      const central = header(46, 0x02014b50);
+      central.view.setUint16(4, 20, true);
+      central.view.setUint16(6, 20, true);
+      central.view.setUint16(8, 0x800, true);
+      central.view.setUint16(14, 0x21, true);
+      central.view.setUint32(16, record.crc, true);
+      central.view.setUint32(20, record.length, true);
+      central.view.setUint32(24, record.length, true);
+      central.view.setUint16(28, record.fileName.length, true);
+      central.view.setUint32(42, record.offset, true);
+      await write(central.bytes);
+      await write(record.fileName);
+    }
+    const end = header(22, 0x06054b50);
+    end.view.setUint16(8, entries.length, true);
+    end.view.setUint16(10, entries.length, true);
+    end.view.setUint32(12, bytesWritten - offset, true);
+    end.view.setUint32(16, offset, true);
+    await write(end.bytes);
+    if (sink) {
+      await sink.close();
+      return handle.getFile();
+    }
+    return new File(chunks, name, { type: 'application/zip' });
+  }
+
+  return { addBytes, addFile, close, name, get size() { return bytesWritten; },
+    abort: async () => { try { await sink?.abort(); } catch {} } };
+}
+
+async function sha256Bytes(bytes) {
+  if (self.crypto?.subtle) {
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+  return self.newSha256().update(bytes).digest('hex');
+}
+
+const textTypes = new Set(['REQUEST', 'RESPONSE', 'TEMPLATE_RESPONSE']);
+function timestamp(value, fallback = 0) {
+  const raw = typeof value === 'number' ? (value < 1e11 ? value * 1000 : value) : Date.parse(value);
+  return Number.isFinite(raw) ? raw : fallback;
+}
+function normalizedId(raw) {
+  return encodeURIComponent(String(raw));
+}
+function imageMime(path) {
+  const suffix = path.split('.').pop().toLowerCase();
+  return ({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    gif: 'image/gif', avif: 'image/avif', bmp: 'image/bmp' })[suffix];
+}
+function attachmentMime(path) {
+  const suffix = path.split('.').pop().toLowerCase();
+  return imageMime(path) || ({
+    pdf: 'application/pdf', txt: 'text/plain', md: 'text/markdown', csv: 'text/csv',
+    json: 'application/json', zip: 'application/zip',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  })[suffix] || 'application/octet-stream';
+}
+
+function oldSessions(records) {
+  if (!Array.isArray(records) || !records.some((record) => record?.mapping && typeof record.mapping === 'object')) {
+    throw new Error('这个 JSON 不是可识别的 DeepSeek conversations.json。');
+  }
+  return records.flatMap((record, index) => {
+    if (!record?.mapping || typeof record.mapping !== 'object') return [];
+    const nodes = new Map(Object.entries(record.mapping));
+    const candidates = [...nodes].filter(([, item]) => item?.message);
+    const leaves = new Set(candidates.map(([id]) => id));
+    for (const item of nodes.values()) if (item?.parent != null) leaves.delete(String(item.parent));
+    const fallback = [...leaves].sort((a, b) => {
+      const aTime = timestamp(nodes.get(a).message?.inserted_at);
+      const bTime = timestamp(nodes.get(b).message?.inserted_at);
+      return aTime - bTime || a.localeCompare(b, undefined, { numeric: true });
+    }).pop();
+    const requested = String(record.current_message_id ?? '');
+    let id = nodes.has(requested) ? requested : fallback ?? '';
+    const messages = [];
+    const seen = new Set();
+    while (nodes.has(id)) {
+      if (seen.has(id)) throw new Error('旧版对话的消息分支有循环。');
+      seen.add(id);
+      const node = nodes.get(id);
+      const original = node?.message;
+      if (original && Array.isArray(original.fragments)) {
+        const role = original.role ?? (original.fragments.some((item) => item?.type === 'REQUEST') ? 'USER' : 'ASSISTANT');
+        messages.push({ id, role, inserted_at: original.inserted_at, fragments: original.fragments });
+      }
+      id = node?.parent == null ? '' : String(node.parent);
+    }
+    messages.reverse();
+    for (let i = 0; i < messages.length; i++) messages[i].parent_id = messages[i - 1]?.id ?? null;
+    return messages.length ? [{ ...record, id: record.id ?? 'old-' + index, messages,
+      current_message_id: messages.at(-1).id }] : [];
+  });
+}
+
+function legacyBranches(rows, session) {
+  const children = new Map();
+  for (const [key, row] of rows) {
+    const parent = row.parent;
+    if (parent !== null && !rows.has(parent)) throw new Error('对话中有找不到上一条消息的分支。');
+    if (!children.has(parent)) children.set(parent, []);
+    children.get(parent).push(key);
+  }
+  const selected = new Map();
+  const chain = new Set();
+  let current = session.current_message_id == null ? null : String(session.current_message_id);
+  while (current !== null && rows.has(current)) {
+    if (chain.has(current)) throw new Error('对话分支有循环。');
+    chain.add(current);
+    const parent = rows.get(current).parent;
+    selected.set(parent, current);
+    current = parent;
+  }
+  const originalTip = session.current_message_id == null ? null : String(session.current_message_id);
+  const roots = children.get(null) ?? [];
+  if (!roots.length && rows.size) throw new Error('对话中缺少起始消息。');
+  if (roots.length > 1) {
+    const pivot = Symbol('root');
+    rows.set(pivot, { parent: null, message: { id: 'deepseek-root:' + normalizedId(session.id),
+      role: 'system', contentParts: [], timestamp: timestamp(session.inserted_at) } });
+    children.set(null, [pivot]);
+    children.set(pivot, roots);
+    if (selected.has(null)) selected.set(pivot, selected.get(null));
+  }
+  const forks = {};
+  const messages = [];
+  const pending = [{ key: children.get(null)?.[0] ?? null, list: messages }];
+  const visited = new Set();
+  while (pending.length) {
+    let { key, list } = pending.pop();
+    while (key !== null) {
+      if (visited.has(key)) throw new Error('对话分支有循环。');
+      visited.add(key);
+      const row = rows.get(key);
+      list.push(row.message);
+      const siblings = children.get(key);
+      if (!siblings?.length) break;
+      siblings.sort((a, b) => rows.get(a).message.timestamp - rows.get(b).message.timestamp ||
+        a.localeCompare(b, undefined, { numeric: true }));
+      const active = originalTip === key ? null : selected.get(key) ?? siblings.at(-1);
+      if (siblings.length > 1 || active === null) {
+        forks[row.message.id] = {
+          position: active === null ? siblings.length : siblings.indexOf(active),
+          createdAt: row.message.timestamp,
+          lists: siblings.map((child) => {
+            const branch = { id: 'fork:' + rows.get(child).message.id, messages: [] };
+            if (child !== active) pending.push({ key: child, list: branch.messages });
+            return branch;
+          }),
+        };
+        if (active === null) forks[row.message.id].lists.push({ id: 'empty:' + row.message.id, messages: [] });
+      }
+      key = active;
+    }
+  }
+  if (visited.size !== rows.size) throw new Error('对话包含无法读取的分支。');
+  return { messages, ...(Object.keys(forks).length ? { messageForksHash: forks } : {}) };
+}
+
+function makeManifest() {
+  return {
+    format: 'chatbox-backup', formatVersion: 2, exportedAt: randomTime(),
+    application: { name: 'Chatbox', version: '1.23.5', platform: 'deepseek-mobile-conversion' },
+    exportItems: ['conversations'], sourceConfigVersion: 15, data: {}, sessions: [], resources: [], warnings: [],
+  };
+}
+
+async function prepareInput(file) {
+  const signature = await read(file, 0, 4);
+  if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+    if (file.size > MAX_SESSION) throw new Error('旧版 JSON 超过 32 MB。请从 DeepSeek 导出新版 ZIP。');
+    const records = oldSessions(JSON.parse((await file.text()).replace(/^\uFEFF/, '')));
+    return { sources: records.map((data) => ({ data, estimate: bytesOf(data).length })), legacy: true };
+  }
+  const zip = await openZip(file);
+  const names = [...zip.index.keys()];
+  const hits = names.filter((name) => /(^|\/)chat_sessions\/[^/]+\.json$/.test(name));
+  if (hits.length) {
+    const root = hits[0].slice(0, hits[0].lastIndexOf('chat_sessions/'));
+    const files = new Map();
+    for (const name of names) {
+      if (!name.startsWith(root + 'chat_sessions/')) continue;
+      const match = /^([^/]+)_files\//.exec(name.slice((root + 'chat_sessions/').length));
+      if (!match) continue;
+      const entry = zip.index.get(name);
+      const previous = files.get(match[1]) ?? { bytes: 0, count: 0 };
+      previous.bytes += entry.length;
+      previous.count++;
+      files.set(match[1], previous);
+    }
+    const sources = hits.map((name) => {
+      if (name.slice(0, name.lastIndexOf('chat_sessions/')) !== root) {
+        throw new Error('ZIP 里有多份 DeepSeek 导出。请分别选择原始备份。');
+      }
+      const entry = zip.index.get(name);
+      const filesForSession = files.get(name.slice((root + 'chat_sessions/').length, -5));
+      return { entry, attachmentCount: filesForSession?.count ?? 0,
+        estimate: 2 * entry.length + (filesForSession?.bytes ?? 0) + 4096 + 1024 * (filesForSession?.count ?? 0) };
+    });
+    return { sources, zip, root, legacy: false };
+  }
+  const old = names.find((name) => /(^|\/)conversations\.json$/.test(name));
+  if (old) {
+    const records = oldSessions(await zip.json(zip.index.get(old)));
+    return { sources: records.map((data) => ({ data, estimate: bytesOf(data).length })), legacy: true };
+  }
+  throw new Error('ZIP 中找不到 DeepSeek 对话。请选择 DeepSeek 导出的原始 ZIP。');
+}
+
+async function addSession(data, input, writer, manifest, totals, ids, previousIds) {
+  if (!Array.isArray(data?.messages) || data.id == null || String(data.id).length === 0) {
+    throw new Error('有一个文件的 DeepSeek 会话结构无法识别。');
+  }
+  const id = 'deepseek-mobile-' + normalizedId(data.id);
+  if (id.length > 180 || ids.has(id) || previousIds.has(id)) throw new Error('备份中有过长或重复的会话编号。');
+  ids.add(id);
+  const path = 'sessions/' + id;
+  const resources = [];
+  const existingAttachments = new Map();
+  const rows = new Map();
+  const createdAt = timestamp(data.inserted_at);
+  const name = typeof data.title === 'string' && data.title.trim() ? data.title : 'DeepSeek 对话';
+  const common = { id, name, type: 'chat', starred: Boolean(data.pinned) };
+
+  for (const original of data.messages) {
+    if (original.id == null || rows.has(String(original.id))) throw new Error('对话中有缺失或重复的消息编号。');
+    const mid = String(original.id);
+    const role = typeof original.role === 'string' ? original.role.toLowerCase() : '';
+    if (!['user', 'assistant', 'system'].includes(role)) throw new Error('对话里有无法识别的消息类型。');
+    const message = {
+      id: id + ':message:' + normalizedId(mid), role,
+      timestamp: timestamp(original.inserted_at, createdAt), contentParts: [],
+    };
+    for (const fragment of original.fragments ?? []) {
+      if (textTypes.has(fragment?.type) && typeof fragment.content === 'string') {
+        message.contentParts.push({ type: 'text', text: fragment.content });
+      } else if (fragment?.type === 'THINK' && typeof fragment.content === 'string') {
+        message.contentParts.push({ type: 'reasoning', text: fragment.content });
+      } else if (fragment?.type === 'FILE' && !input.legacy) {
+        for (const file of fragment.files ?? []) {
+          const exportPath = typeof file.export_path === 'string' ? file.export_path : '';
+          const source = input.zip.index.get(input.root + exportPath);
+          if (!source || !exportPath.startsWith('chat_sessions/') || /(^|\/)\.\.(\/|$)/.test(exportPath)) {
+            totals.missing++;
+            continue;
+          }
+          const filename = typeof file.file_name === 'string' && file.file_name ? file.file_name : '附件';
+          const mimeType = attachmentMime(exportPath);
+          const image = Boolean(file.is_image) && mimeType.startsWith('image/');
+          let record = existingAttachments.get(exportPath);
+          if (!record) {
+            const resourceId = 'resource-' + (manifest.resources.length + 1);
+            const storageKey = (image ? 'picture:' : 'file:') + id + ':' + resources.length;
+            const suffix = /\.[a-z0-9]{1,12}$/i.exec(exportPath)?.[0]?.toLowerCase() ?? '.bin';
+            const descriptor = await writer.addFile(path + '/resources/' + resourceId + suffix, source, input.zip.transfer);
+            record = { storageKey, resourceId, image };
+            existingAttachments.set(exportPath, record);
+            resources.push(resourceId);
+            manifest.resources.push({ ...descriptor, id: resourceId, originalStorageKeys: [storageKey],
+              sessionIds: [id], scope: 'session', encoding: 'data-url-base64',
+              kind: image ? 'image' : 'raw-attachment', mimeType, filename });
+            totals[image ? 'images' : 'attachments']++;
+          }
+          if (record.image) {
+            message.contentParts.push({ type: 'image', storageKey: record.storageKey });
+          } else {
+            (message.files ??= []).push({ id: record.storageKey, name: filename,
+              fileType: mimeType, rawStorageKey: record.storageKey, byteLength: source.length });
+          }
+        }
+      }
+    }
+    rows.set(mid, { parent: original.parent_id == null ? null : String(original.parent_id), message });
+  }
+
+  const session = { ...common, ...legacyBranches(rows, data) };
+  const descriptor = await writer.addBytes(path + '/session.json', bytesOf(session));
+  manifest.sessions.push({ ...descriptor, id, resourceIds: resources,
+    meta: { ...common, createdAt, sortOrder: timestamp(data.updated_at, createdAt) } });
+  totals.messages += data.messages.length;
+}
+
+let continueConversion;
+
+function storageError(error) {
+  return ['QuotaExceededError', 'NoModificationAllowedError', 'NotReadableError',
+    'InvalidStateError', 'UnknownError', 'NotAllowedError'].includes(error?.name);
+}
+
+function planParts(sources, target) {
+  const groups = [];
+  let start = 0;
+  let bytes = 0;
+  let entries = 0;
+  for (let index = 0; index < sources.length; index++) {
+    const source = sources[index];
+    const count = (source.attachmentCount ?? 0) + 1;
+    if (index > start && (bytes + source.estimate > target || entries + count >= 60000)) {
+      groups.push({ start, end: index });
+      start = index;
+      bytes = 0;
+      entries = 0;
+    }
+    bytes += source.estimate;
+    entries += count;
+  }
+  groups.push({ start, end: sources.length });
+  return groups;
+}
+
+const counters = () => ({ messages: 0, images: 0, attachments: 0, missing: 0 });
+
+async function run({ file, sizeMiB, job }) {
+  let writer;
+  let storage;
+  let produced = 0;
+  try {
+    status('正在读取文件目录…');
+    const input = await prepareInput(file);
+    if (!input.sources.length) throw new Error('文件中没有可转换的会话。');
+    storage = await getStorage(job);
+    const groups = planParts(input.sources, (storage ? sizeMiB : Math.min(sizeMiB, 64)) * MiB);
+    const totals = counters();
+    const ids = new Set();
+
+    async function writePart({ start, end }, number) {
+      const manifest = makeManifest();
+      const currentTotals = counters();
+      const currentIds = new Set();
+      writer = await makeWriter(storage, number);
+      for (let index = start; index < end; index++) {
+        const source = input.sources[index];
+        status('正在转换第 ' + countLabel(index + 1) + ' / ' + countLabel(input.sources.length) + ' 个会话…',
+          index, input.sources.length);
+        const data = source.data ?? await input.zip.json(source.entry);
+        await addSession(data, input, writer, manifest, currentTotals, currentIds, ids);
+      }
+      manifest.stats = { sessionCount: manifest.sessions.length, resourceCount: manifest.resources.length,
+        deduplicatedResourceCount: 0, warningCount: 0 };
+      await writer.addBytes('manifest.json', bytesOf(manifest));
+      const backup = await writer.close();
+      const part = { file: backup, name: writer.name, sessions: manifest.sessions.length, bytes: backup.size };
+      writer = undefined;
+      for (const key of Object.keys(totals)) totals[key] += currentTotals[key];
+      for (const id of currentIds) ids.add(id);
+      return part;
+    }
+
+    for (let index = 0; index < groups.length; index++) {
+      const group = groups[index];
+      const number = produced + 1;
+      let part;
+      try {
+        part = await writePart(group, number);
+      } catch (error) {
+        if (!storage || !storageError(error)) throw error;
+        await writer?.abort();
+        await storage.directory.removeEntry(zipName(number)).catch(() => {});
+        writer = undefined;
+        storage = null;
+        const remaining = input.sources.slice(group.start);
+        groups.splice(index, groups.length - index,
+          ...planParts(remaining, Math.min(sizeMiB, 64) * MiB)
+            .map(({ start, end }) => ({ start: start + group.start, end: end + group.start })));
+        status('浏览器临时空间无法写入，正在改用逐包下载模式…');
+        index--;
+        continue;
+      }
+      produced++;
+      const needsDownload = !storage && index + 1 < groups.length;
+      const waiting = needsDownload ? new Promise((resolve) => { continueConversion = resolve; }) : null;
+      postMessage({ type: 'part', ...part, number, needsDownload });
+      if (waiting) {
+        status('请下载备份 ' + String(number).padStart(2, '0') + ' 后继续，浏览器将腾出空间处理下一包。');
+        await waiting;
+      }
+    }
+    postMessage({ type: 'done', parts: produced, sessions: input.sources.length, ...totals });
+  } catch (error) {
+    await writer?.abort();
+    const message = error?.name === 'SyntaxError' ? '所选文件的 JSON 无法读取。请重新下载 DeepSeek 导出文件。'
+      : storageError(error) ? '浏览器的临时空间不足或无法写入。请清理空间，或改用电脑浏览器重试。'
+      : error?.message || '文件无法转换。';
+    postMessage({ type: 'error', message, parts: produced });
+  }
+}
+
+self.onmessage = ({ data }) => {
+  if (data?.type === 'resume') {
+    const resume = continueConversion;
+    continueConversion = undefined;
+    resume?.();
+  } else {
+    void run(data);
+  }
+};
+
+</script>
+<script>
+'use strict';
+
+const input = document.getElementById('source');
+const target = document.getElementById('part-size');
+const convert = document.getElementById('convert');
+const cancel = document.getElementById('cancel');
+const progress = document.getElementById('progress');
+const message = document.getElementById('status');
+const results = document.getElementById('results');
+const urls = new Set();
+let worker;
+let workerUrl;
+let job;
+
+function formatSize(bytes) {
+  const unit = bytes >= 1024 * 1024 ? 'MB' : 'KB';
+  const divisor = unit === 'MB' ? 1024 * 1024 : 1024;
+  return (bytes / divisor).toLocaleString('zh-CN', { maximumFractionDigits: 1 }) + ' ' + unit;
+}
+
+function setMessage(text, error = false) {
+  message.textContent = text;
+  message.classList.toggle('error', error);
+}
+
+function setRunning(running) {
+  input.disabled = running;
+  convert.disabled = running || !input.files[0];
+  target.disabled = running;
+  cancel.hidden = !running;
+  progress.hidden = !running;
+}
+
+function stopWorker() {
+  worker?.terminate();
+  worker = undefined;
+  if (workerUrl) URL.revokeObjectURL(workerUrl);
+  workerUrl = undefined;
+  setRunning(false);
+}
+
+function clearResults() {
+  for (const url of urls) URL.revokeObjectURL(url);
+  urls.clear();
+  results.replaceChildren();
+  if (job && navigator.storage?.getDirectory) {
+    const previous = job;
+    void navigator.storage.getDirectory()
+      .then((directory) => directory.removeEntry(previous, { recursive: true })).catch(() => {});
+  }
+  job = undefined;
+}
+
+input.addEventListener('change', () => {
+  clearResults();
+  const file = input.files[0];
+  document.getElementById('file-title').textContent = file?.name ?? '选择 DeepSeek 导出文件';
+  document.getElementById('file-note').textContent = file ? formatSize(file.size) : '支持官方 ZIP，也可选旧版 conversations.json';
+  setMessage('');
+  setRunning(false);
+});
+
+function addResult(part) {
+  const row = document.createElement('div');
+  row.className = 'result';
+  const label = document.createElement('div');
+  const title = document.createElement('strong');
+  title.textContent = '备份 ' + String(part.number).padStart(2, '0');
+  const meta = document.createElement('small');
+  meta.textContent = part.sessions.toLocaleString('zh-CN') + ' 个会话 · ' + formatSize(part.bytes);
+  label.append(title, meta);
+
+  const url = URL.createObjectURL(part.file);
+  urls.add(url);
+  const link = document.createElement('a');
+  link.className = 'action secondary';
+  link.href = url;
+  link.download = part.name;
+  link.textContent = part.needsDownload ? '下载并继续' : '下载 ZIP';
+  link.setAttribute('aria-label', '下载备份 ' + part.number);
+  if (part.needsDownload) link.addEventListener('click', () => {
+    if (link.dataset.started) return;
+    link.dataset.started = 'true';
+    const activeWorker = worker;
+    setTimeout(() => {
+      if (worker === activeWorker) worker?.postMessage({ type: 'resume' });
+    }, 300);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      urls.delete(url);
+      link.remove();
+      meta.textContent += ' · 已开始下载';
+    }, 45000);
+  });
+  row.append(label, link);
+  results.append(row);
+}
+
+convert.addEventListener('click', () => {
+  const file = input.files[0];
+  if (!file || worker) return;
+  clearResults();
+  setRunning(true);
+  progress.removeAttribute('value');
+  setMessage('正在准备转换…');
+  job = 'ds-chatbox-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  try {
+    const script = document.getElementById('worker-code').textContent;
+    workerUrl = URL.createObjectURL(new Blob([script], { type: 'text/javascript' }));
+    worker = new Worker(workerUrl);
+    worker.onmessage = ({ data }) => {
+      if (data.type === 'progress') {
+        setMessage(data.message);
+        if (data.total) {
+          progress.max = data.total;
+          progress.value = data.current;
+        }
+      } else if (data.type === 'part') {
+        addResult(data);
+      } else if (data.type === 'done') {
+        stopWorker();
+        const items = [data.sessions + ' 个会话', data.messages + ' 条消息'];
+        if (data.images) items.push(data.images + ' 张图片');
+        if (data.attachments) items.push(data.attachments + ' 个文件附件');
+        const missing = data.missing ? ' 原备份中有 ' + data.missing + ' 处附件引用缺少文件。' : '';
+        setMessage('转换完成。' + items.join('、') + '，共 ' + data.parts + ' 个备份包。' + missing);
+      } else if (data.type === 'error') {
+        stopWorker();
+        if (!data.parts) clearResults();
+        setMessage(data.message + (data.parts ? ' 下方已经生成的分包仍可下载。' : ''), true);
+      }
+    };
+    worker.onerror = () => {
+      stopWorker();
+      if (!results.childElementCount) clearResults();
+      setMessage('浏览器无法继续转换。请用最新版 Chrome、Edge 或 Safari 重试。', true);
+    };
+    worker.postMessage({ file, sizeMiB: Number(target.value), job });
+  } catch {
+    stopWorker();
+    clearResults();
+    setMessage('此页面无法运行转换。请保存 HTML 后用浏览器打开。', true);
+  }
+});
+
+cancel.addEventListener('click', () => {
+  stopWorker();
+  if (!results.childElementCount) clearResults();
+  setMessage(results.childElementCount ? '已停止。下方已经生成的分包仍可下载。' : '已停止转换。');
+});
+
+</script>
+</body></html>
